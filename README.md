@@ -12,7 +12,7 @@ Add the VelocitySampler to objects in the scene. Select them while the scene is 
 * Sampled data is automatically deleted when the scene is reloaded
 * Sampled data will persist after Pausing or Stopping play
 
-### VECTORSAMPLES PUBLIC VARIABLES
+### VECTORSAMPLER PUBLIC VARIABLES
 * Transform: The transform you want to track. Obviously.
 * Color: The color of the line in the Graph Window
 * Sample Period: Target amount of time between individual samples
