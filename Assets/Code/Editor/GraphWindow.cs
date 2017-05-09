@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEditor;
+using Object = UnityEngine.Object;
 
 namespace SimpleSample.Editor
 {
@@ -12,8 +14,8 @@ namespace SimpleSample.Editor
         private const float GRAPH_INNER_MARGIN = 25f;
         private const float GRAPH_GRID_WIDTH = 50f;
 
-        private const float KEY_AREA_HEIGHT = 24f;
-        private const float KEY_ENTRY_HEIGHT = 20f;
+        private const float KEY_AREA_HEIGHT = 44f;
+        private const float KEY_ENTRY_HEIGHT = 40f;
         private const float KEY_ENTRY_WIDTH = 100f;
         private const float KEY_VERTICAL_MARGIN = (KEY_AREA_HEIGHT - KEY_ENTRY_HEIGHT) * 0.5f;
         private const float KEY_HORIZONTAL_MARGIN = 2f;
@@ -39,11 +41,16 @@ namespace SimpleSample.Editor
         private List<Color> _allColors = new List<Color>();
         [SerializeField] [HideInInspector]
         private List<string> _allNames = new List<string>();
+        [SerializeField]
+        [HideInInspector]
+        private Dictionary<Vector2[], bool> _showSample = new Dictionary<Vector2[], bool>();
 
         [SerializeField] [HideInInspector]
         private Dictionary<int, string> _cachedValueStrings = new Dictionary<int, string>();
 
         private Material lineMat = null;
+
+        private bool testbool;
         
         [MenuItem("Window/Graph Window")]
         private static void ShowWindow()
@@ -127,7 +134,7 @@ namespace SimpleSample.Editor
             // Update the aggregate listings
             if (selectionHasSamples || _totalSamples > 0)
             {
-                // All old state is assumed to be stale
+                // All old state is assumed to be stale...
                 _totalSamples = 0;
                 _allStreams.Clear();
                 _allColors.Clear();
@@ -143,6 +150,9 @@ namespace SimpleSample.Editor
                         _allStreams.Add(enumerator.Current.GetSampleStream(i));
                         _allColors.Add(enumerator.Current.GetSampleColor(i));
                         _allNames.Add(enumerator.Current.GetSampleName(i));
+
+                        if (!_showSample.ContainsKey(_allStreams[i]))
+                            _showSample[_allStreams[i]] = true;
                     }
                 }
             }
@@ -163,11 +173,21 @@ namespace SimpleSample.Editor
                     Color textColor = (((backgroundColor.r + backgroundColor.g + backgroundColor.b) * backgroundColor.a) > 1.35f) ? Color.black : Color.white;
                     string name = _allNames[i];
                     EditorGUI.DrawRect(entryRect, backgroundColor);
-                    EditorGUI.LabelField(entryRect, name, GetCenteredStyle(textColor));
-
+                    Rect labelRect = new Rect(entryRect);
+                    labelRect.height *= 0.5f;
+                    GUIStyle labelStyle = GetCenteredStyle(textColor);
+                    EditorGUI.LabelField(labelRect, name, labelStyle);
+                    Rect checkRect = new Rect(labelRect);
+                    checkRect.y += checkRect.height;
+                    EditorGUIUtility.labelWidth = KEY_ENTRY_WIDTH - 20f;
+                    
+                    _showSample[_allStreams[i]] = EditorGUI.Toggle(checkRect, "Display?", _showSample[_allStreams[i]]);
+                    
                     i++;
                     entryRect.x += KEY_ENTRY_WIDTH + KEY_HORIZONTAL_MARGIN;
                 }
+                
+                EditorGUIUtility.labelWidth = KEY_ENTRY_WIDTH - 0f;
             }
             Profiler.EndSample();
 
@@ -187,6 +207,8 @@ namespace SimpleSample.Editor
                 Profiler.BeginSample("Min/Max");
                 for (int i = 0; i < _totalSamples; i++)
                 {
+                    if (!_showSample[_allStreams[i]]) continue;
+
                     int numPoints = _allStreams[i].Length;
                     for (int j = 0; j < numPoints; j++)
                     {
@@ -287,6 +309,8 @@ namespace SimpleSample.Editor
                 {
                     for (int i = 0; i < _totalSamples; i++)
                     {
+                        if (!_showSample[_allStreams[i]]) continue;
+
                         Color lineColor = _allColors[i];
                         Vector2[] stream = _allStreams[i];
 
