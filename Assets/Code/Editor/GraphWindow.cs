@@ -41,9 +41,28 @@ namespace SimpleSample.Editor
         private List<Color> _allColors = new List<Color>();
         [SerializeField] [HideInInspector]
         private List<string> _allNames = new List<string>();
+        /*
+        [Serializable]
+        private struct SampleID : IEquatable<SampleID>
+        {
+            private ISampleProvider provider;
+            private int index;
+
+            public SampleID(ISampleProvider provider, int index)
+            {
+                this.provider = provider;
+                this.index = index;
+            }
+
+            public bool Equals(SampleID other)
+            {
+                return provider == other.provider && index == other.index;
+            }
+        }
+        */
         [SerializeField]
         [HideInInspector]
-        private Dictionary<Vector2[], bool> _showSample = new Dictionary<Vector2[], bool>();
+        private Dictionary<int, bool> _showSample = new Dictionary<int, bool>();
 
         [SerializeField] [HideInInspector]
         private Dictionary<int, string> _cachedValueStrings = new Dictionary<int, string>();
@@ -144,15 +163,17 @@ namespace SimpleSample.Editor
                 while (enumerator.MoveNext())
                 {
                     int numStreams = enumerator.Current.NumSampleStreams;
-                    _totalSamples += numStreams;
                     for (int i = 0; i < numStreams; i++)
                     {
-                        _allStreams.Add(enumerator.Current.GetSampleStream(i));
+                        Vector2[] sampleStream = enumerator.Current.GetSampleStream(i);
+                        _allStreams.Add(sampleStream);
                         _allColors.Add(enumerator.Current.GetSampleColor(i));
                         _allNames.Add(enumerator.Current.GetSampleName(i));
+                        
+                        if (!_showSample.ContainsKey(_allStreams.Count - 1))
+                            _showSample[_allStreams.Count - 1] = true;
 
-                        if (!_showSample.ContainsKey(_allStreams[i]))
-                            _showSample[_allStreams[i]] = true;
+                        _totalSamples++;
                     }
                 }
             }
@@ -181,7 +202,7 @@ namespace SimpleSample.Editor
                     checkRect.y += checkRect.height;
                     EditorGUIUtility.labelWidth = KEY_ENTRY_WIDTH - 20f;
                     
-                    _showSample[_allStreams[i]] = EditorGUI.Toggle(checkRect, "Display?", _showSample[_allStreams[i]]);
+                    _showSample[i] = EditorGUI.Toggle(checkRect, "Display?", _showSample[i]);
                     
                     i++;
                     entryRect.x += KEY_ENTRY_WIDTH + KEY_HORIZONTAL_MARGIN;
@@ -207,7 +228,7 @@ namespace SimpleSample.Editor
                 Profiler.BeginSample("Min/Max");
                 for (int i = 0; i < _totalSamples; i++)
                 {
-                    if (!_showSample[_allStreams[i]]) continue;
+                    if (!_showSample[i]) continue;
 
                     int numPoints = _allStreams[i].Length;
                     for (int j = 0; j < numPoints; j++)
@@ -309,7 +330,7 @@ namespace SimpleSample.Editor
                 {
                     for (int i = 0; i < _totalSamples; i++)
                     {
-                        if (!_showSample[_allStreams[i]]) continue;
+                        if (!_showSample[i]) continue;
 
                         Color lineColor = _allColors[i];
                         Vector2[] stream = _allStreams[i];
