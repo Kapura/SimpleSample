@@ -668,7 +668,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1766535127}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.14, y: 0.25, z: 0.44}
+  m_LocalPosition: {x: 0.14, y: 0.25, z: 0.27}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_Children: []
   m_Father: {fileID: 0}
@@ -686,7 +686,6 @@ GameObject:
   - component: {fileID: 1916030024}
   - component: {fileID: 1916030023}
   - component: {fileID: 1916030022}
-  - component: {fileID: 1916030021}
   - component: {fileID: 1916030027}
   m_Layer: 0
   m_Name: Sphere_test
@@ -695,25 +694,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1916030021
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1916030020}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3cccc0f97c34d5948864c031d0ea8fd3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  transform: {fileID: 1916030026}
-  color: {r: 0, g: 0.5448277, b: 1, a: 1}
-  samplePeriod: 0.03
-  numSamples: 300
-  _sampler:
-    _head: 0
-    _numSamplesCollected: 0
-    _samples: []
 --- !u!54 &1916030022
 Rigidbody:
   m_ObjectHideFlags: 0
