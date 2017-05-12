@@ -72,7 +72,7 @@ namespace SimpleSample.Editor
         private bool testbool;
         
         [MenuItem("Window/Graph Window")]
-        private static void ShowWindow()
+        public static void ShowWindow()
         {
             GraphWindow window = GetWindow<GraphWindow>(false, "Graph Window", true);
             window.minSize = new Vector2(WINDOW_MIN_X, WINDOW_MIN_Y);

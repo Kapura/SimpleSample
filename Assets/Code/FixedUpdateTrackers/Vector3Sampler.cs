@@ -1,11 +1,9 @@
 ﻿using UnityEngine;
 
-namespace SimpleSample
+namespace SimpleSample.Behaviours
 {
-    public class Vector3Sampler : MonoBehaviour, ISampleProvider
+    public class Vector3Sampler : SampleBehaviour
     {
-        public new Transform transform;
-
         public Color colorX = Color.red;
         public Color colorY = Color.green;
         public Color colorZ = Color.blue;
@@ -14,7 +12,7 @@ namespace SimpleSample
         [Tooltip("If set to 0, sample every tick of FixedUpdate")]
         public float samplePeriod = 0f;
         public int numSamples = 100;
-        public int NumSampleStreams { get { return 4; } }
+        public override int NumSampleStreams { get { return 4; } }
         
         [SerializeField] [HideInInspector]
         private FloatSampler _samplerX;
@@ -37,11 +35,6 @@ namespace SimpleSample
             _nextSampleTime = Time.time + samplePeriod;
             _lastPosition = transform.localPosition;
         }
-
-        private void Reset()
-        {
-            transform = GetComponent<Transform>();
-        }
         
         private void FixedUpdate()
         {
@@ -59,7 +52,7 @@ namespace SimpleSample
             _lastPosition = position;
         }
 
-        public Vector2[] GetSampleStream(int index)
+        public override Vector2[] GetSampleStream(int index)
         {
             switch (index)
             {
@@ -76,7 +69,7 @@ namespace SimpleSample
             }
         }
 
-        public Color GetSampleColor(int index)
+        public override Color GetSampleColor(int index)
         {
             switch (index)
             {
@@ -93,7 +86,7 @@ namespace SimpleSample
             }
         }
 
-        public string GetSampleName(int index)
+        public override string GetSampleName(int index)
         {
             switch (index)
             {

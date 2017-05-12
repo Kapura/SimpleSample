@@ -1,17 +1,15 @@
 ﻿using UnityEngine;
 
-namespace SimpleSample
+namespace SimpleSample.Behaviours
 {
-    public class VelocitySampler : MonoBehaviour, ISampleProvider
+    public class VelocitySampler : SampleBehaviour
     {
-        public new Transform transform;
-
         public Color color = Color.white;
 
         [Tooltip("If set to 0, sample every tick of FixedUpdate")]
         public float samplePeriod = 0f;
         public int numSamples = 100;
-        public int NumSampleStreams { get { return 1; } }
+        public override int NumSampleStreams { get { return 1; } }
         
         [SerializeField] [HideInInspector]
         private FloatSampler _sampler;
@@ -24,11 +22,6 @@ namespace SimpleSample
             _sampler = new FloatSampler(numSamples);
             _nextSampleTime = Time.time + samplePeriod;
             _lastPosition = transform.localPosition;
-        }
-
-        private void Reset()
-        {
-            transform = GetComponent<Transform>();
         }
         
         private void FixedUpdate()
@@ -43,17 +36,17 @@ namespace SimpleSample
             _lastPosition = position;
         }
 
-        public Vector2[] GetSampleStream(int index)
+        public override Vector2[] GetSampleStream(int index)
         {
             return _sampler.GetSortedVectorSamples();
         }
 
-        public Color GetSampleColor(int index)
+        public override Color GetSampleColor(int index)
         {
             return color;
         }
 
-        public string GetSampleName(int index)
+        public override string GetSampleName(int index)
         {
             return transform.name;
         }
