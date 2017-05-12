@@ -14,14 +14,14 @@ namespace SimpleSample.Editor
         private const float GRAPH_INNER_MARGIN = 25f;
         private const float GRAPH_GRID_WIDTH = 50f;
 
-        private const float KEY_AREA_HEIGHT = 44f;
+        private const float KEY_AREA_ROW_HEIGHT = 44f;
         private const float KEY_ENTRY_HEIGHT = 40f;
         private const float KEY_ENTRY_WIDTH = 100f;
-        private const float KEY_VERTICAL_MARGIN = (KEY_AREA_HEIGHT - KEY_ENTRY_HEIGHT) * 0.5f;
+        private const float KEY_VERTICAL_MARGIN = (KEY_AREA_ROW_HEIGHT - KEY_ENTRY_HEIGHT) * 0.5f;
         private const float KEY_HORIZONTAL_MARGIN = 2f;
 
         private const float WINDOW_MIN_X = GRAPH_MARGIN_LEFT + GRAPH_INNER_MARGIN + GRAPH_INNER_MARGIN + GRAPH_GRID_WIDTH;
-        private const float WINDOW_MIN_Y = GRAPH_MARGIN_TOP + GRAPH_INNER_MARGIN + GRAPH_INNER_MARGIN + GRAPH_GRID_WIDTH + KEY_AREA_HEIGHT;
+        private const float WINDOW_MIN_Y = GRAPH_MARGIN_TOP + GRAPH_INNER_MARGIN + GRAPH_INNER_MARGIN + GRAPH_GRID_WIDTH + KEY_AREA_ROW_HEIGHT;
 
         private static readonly Color KEY_BACKGROUND_COLOR = new Color(0, 0, 0);
         private static readonly Color GRAPH_BACKGROUND_COLOR = new Color(0, 0, 0);
@@ -100,7 +100,7 @@ namespace SimpleSample.Editor
         private void OnEnable()
         {
             float minX = GRAPH_MARGIN_LEFT + GRAPH_INNER_MARGIN + GRAPH_INNER_MARGIN + GRAPH_GRID_WIDTH;
-            float minY = GRAPH_MARGIN_TOP + GRAPH_INNER_MARGIN + GRAPH_INNER_MARGIN + GRAPH_GRID_WIDTH + KEY_AREA_HEIGHT;
+            float minY = GRAPH_MARGIN_TOP + GRAPH_INNER_MARGIN + GRAPH_INNER_MARGIN + GRAPH_GRID_WIDTH + KEY_AREA_ROW_HEIGHT;
             minSize.Set(minX, minY);
         }
 
@@ -181,14 +181,20 @@ namespace SimpleSample.Editor
 
             Profiler.BeginSample("Key");
             // Draw key
+            float keyAreaHeight = KEY_AREA_ROW_HEIGHT;
             {
-                Rect keyRect = new Rect(0, position.height - KEY_AREA_HEIGHT, position.width, KEY_AREA_HEIGHT);
+                // Determine the number of rows
+                int entriesPerRow = Mathf.FloorToInt(position.width / (KEY_HORIZONTAL_MARGIN + KEY_ENTRY_WIDTH));
+                int numRows = Mathf.CeilToInt((float)_totalSamples / (float)entriesPerRow);
+                keyAreaHeight = numRows * KEY_AREA_ROW_HEIGHT;
+
+                Rect keyRect = new Rect(0, position.height - keyAreaHeight, position.width, keyAreaHeight);
                 EditorGUI.DrawRect(keyRect, KEY_BACKGROUND_COLOR);
 
                 Rect entryRect = new Rect(KEY_HORIZONTAL_MARGIN, keyRect.y + KEY_VERTICAL_MARGIN, KEY_ENTRY_WIDTH, KEY_ENTRY_HEIGHT);
                 int i = 0;
 
-                while (i < _totalSamples && entryRect.x <= position.width - KEY_HORIZONTAL_MARGIN)
+                while (i < _totalSamples)
                 {
                     Color backgroundColor = _allColors[i];
                     Color textColor = (((backgroundColor.r + backgroundColor.g + backgroundColor.b) * backgroundColor.a) > 1.35f) ? Color.black : Color.white;
@@ -206,6 +212,12 @@ namespace SimpleSample.Editor
                     
                     i++;
                     entryRect.x += KEY_ENTRY_WIDTH + KEY_HORIZONTAL_MARGIN;
+
+                    if (entryRect.x + KEY_ENTRY_WIDTH > position.width - KEY_HORIZONTAL_MARGIN)
+                    {
+                        entryRect.x = KEY_HORIZONTAL_MARGIN;
+                        entryRect.y += KEY_AREA_ROW_HEIGHT;
+                    }
                 }
                 
                 EditorGUIUtility.labelWidth = KEY_ENTRY_WIDTH - 0f;
@@ -215,7 +227,7 @@ namespace SimpleSample.Editor
             Profiler.BeginSample("GraphBackground");
             // Draw graph background
             Profiler.BeginSample("BackgroundColor");
-            Rect graphRect = new Rect(GRAPH_MARGIN_LEFT, GRAPH_MARGIN_TOP, position.width - GRAPH_MARGIN_LEFT, position.height - GRAPH_MARGIN_TOP - KEY_AREA_HEIGHT);
+            Rect graphRect = new Rect(GRAPH_MARGIN_LEFT, GRAPH_MARGIN_TOP, position.width - GRAPH_MARGIN_LEFT, position.height - GRAPH_MARGIN_TOP - keyAreaHeight);
             EditorGUI.DrawRect(graphRect, GRAPH_BACKGROUND_COLOR);
             Profiler.EndSample();
 
@@ -316,7 +328,7 @@ namespace SimpleSample.Editor
             Profiler.EndSample();
 
             // Borders
-            DrawLine(new Vector2(0, position.height - KEY_AREA_HEIGHT), new Vector2(position.width, position.height - KEY_AREA_HEIGHT), GRAPH_BORDER_COLOR);
+            DrawLine(new Vector2(0, position.height - keyAreaHeight), new Vector2(position.width, position.height - keyAreaHeight), GRAPH_BORDER_COLOR);
             Profiler.EndSample();
 
             Profiler.BeginSample("Data");
