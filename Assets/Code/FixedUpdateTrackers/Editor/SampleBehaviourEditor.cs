@@ -29,6 +29,32 @@ namespace SimpleSample.Behaviours.Editor
 
                 GraphWindow.ShowWindow();
             }
+
+            int numStreams = script.NumSampleStreams;
+
+            if (numStreams == 1)
+            {
+                if (GUILayout.Button("Copy stream CSV to clipboard"))
+                {
+                    GUIUtility.systemCopyBuffer = script.StreamToCSV(0);
+                    Debug.LogFormat("Copied CSV of stream '{0}' to clipboard", script.GetSampleName(0));
+                }
+            }
+            else if (numStreams > 1)
+            {
+                GUILayout.Label("Copy stream CSV to clipboard:");
+                
+                // TODO: something to keep this from breaking on large no. of samples
+                for (int i = 0; i < numStreams; i++)
+                {
+                    string name = script.GetSampleName(i);
+                    if (GUILayout.Button(name))
+                    {
+                        GUIUtility.systemCopyBuffer = script.StreamToCSV(i);
+                        Debug.LogFormat("Copied CSV of stream '{0}' to clipboard", name);
+                    }
+                }
+            }
         }
     }
 }
