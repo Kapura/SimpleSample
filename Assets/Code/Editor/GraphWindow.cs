@@ -13,12 +13,12 @@ namespace SimpleSample.Editor
         private const float GRAPH_MARGIN_TOP = 40f;
         private const float GRAPH_INNER_MARGIN = 25f;
         private const float GRAPH_GRID_WIDTH = 50f;
-
-        private const float KEY_AREA_ROW_HEIGHT = 44f;
-        private const float KEY_ENTRY_HEIGHT = 40f;
-        private const float KEY_ENTRY_WIDTH = 100f;
-        private const float KEY_VERTICAL_MARGIN = (KEY_AREA_ROW_HEIGHT - KEY_ENTRY_HEIGHT) * 0.5f;
+        
         private const float KEY_HORIZONTAL_MARGIN = 2f;
+        private const float KEY_VERTICAL_MARGIN = 2f;
+        private const float KEY_ENTRY_HEIGHT = 60f;
+        private const float KEY_ENTRY_WIDTH = 100f;
+        private const float KEY_AREA_ROW_HEIGHT = KEY_ENTRY_HEIGHT + (2 * KEY_VERTICAL_MARGIN);
 
         private const float WINDOW_MIN_X = GRAPH_MARGIN_LEFT + GRAPH_INNER_MARGIN + GRAPH_INNER_MARGIN + GRAPH_GRID_WIDTH;
         private const float WINDOW_MIN_Y = GRAPH_MARGIN_TOP + GRAPH_INNER_MARGIN + GRAPH_INNER_MARGIN + GRAPH_GRID_WIDTH + KEY_AREA_ROW_HEIGHT;
@@ -33,6 +33,9 @@ namespace SimpleSample.Editor
         [SerializeField] [HideInInspector]
         private List<ISampleProvider> _sampleProviders = new List<ISampleProvider>();
 
+        
+        // These lists starting to get ridiculus.
+        // TODO: make SampleInfo or w/e struct
         [SerializeField] [HideInInspector]
         private int _totalSamples = 0;
         [SerializeField] [HideInInspector]
@@ -41,6 +44,22 @@ namespace SimpleSample.Editor
         private List<Color> _allColors = new List<Color>();
         [SerializeField] [HideInInspector]
         private List<string> _allNames = new List<string>();
+
+        private struct SampleRange
+        {
+            public float min;
+            public float max;
+
+            public SampleRange(float min, float max)
+            {
+                this.min = min;
+                this.max = max;
+            }
+
+            public static SampleRange Range01 { get { return new SampleRange(0, 1); } }
+        }
+        [SerializeField] [HideInInspector]
+        private Dictionary<int, SampleRange> _allRanges = new Dictionary<int, SampleRange>();
         /*
         [Serializable]
         private struct SampleID : IEquatable<SampleID>
@@ -60,8 +79,7 @@ namespace SimpleSample.Editor
             }
         }
         */
-        [SerializeField]
-        [HideInInspector]
+        [SerializeField] [HideInInspector]
         private Dictionary<int, bool> _showSample = new Dictionary<int, bool>();
 
         [SerializeField] [HideInInspector]
@@ -170,9 +188,13 @@ namespace SimpleSample.Editor
                         _allColors.Add(enumerator.Current.GetSampleColor(i));
                         _allNames.Add(enumerator.Current.GetSampleName(i));
                         
-                        if (!_showSample.ContainsKey(_allStreams.Count - 1))
-                            _showSample[_allStreams.Count - 1] = true;
-
+                        // _totalSamples is the index of the most recent stream; == _allStreams.Count - 1
+                        if (!_showSample.ContainsKey(_totalSamples))
+                        {
+                            _showSample[_totalSamples] = true;
+                            _allRanges[_totalSamples] = SampleRange.Range01;
+                        }
+                        
                         _totalSamples++;
                     }
                 }
@@ -191,25 +213,37 @@ namespace SimpleSample.Editor
                 Rect keyRect = new Rect(0, position.height - keyAreaHeight, position.width, keyAreaHeight);
                 EditorGUI.DrawRect(keyRect, KEY_BACKGROUND_COLOR);
 
+                // Draw each entry
                 Rect entryRect = new Rect(KEY_HORIZONTAL_MARGIN, keyRect.y + KEY_VERTICAL_MARGIN, KEY_ENTRY_WIDTH, KEY_ENTRY_HEIGHT);
                 int i = 0;
-
                 while (i < _totalSamples)
                 {
                     Color backgroundColor = _allColors[i];
                     Color textColor = (((backgroundColor.r + backgroundColor.g + backgroundColor.b) * backgroundColor.a) > 1.35f) ? Color.black : Color.white;
                     string name = _allNames[i];
                     EditorGUI.DrawRect(entryRect, backgroundColor);
+
                     Rect labelRect = new Rect(entryRect);
-                    labelRect.height *= 0.5f;
+                    labelRect.height /= 3f;
                     GUIStyle labelStyle = GetCenteredStyle(textColor);
                     EditorGUI.LabelField(labelRect, name, labelStyle);
+
                     Rect checkRect = new Rect(labelRect);
                     checkRect.y += checkRect.height;
-                    EditorGUIUtility.labelWidth = KEY_ENTRY_WIDTH - 20f;
-                    
+                    EditorGUIUtility.labelWidth = KEY_ENTRY_WIDTH - 20f;  // Constrain the label to allow the checkbox to be drawn correctly
                     _showSample[i] = EditorGUI.Toggle(checkRect, "Display?", _showSample[i]);
+
+                    Rect sliderRect = new Rect(checkRect);
+                    sliderRect.y += checkRect.height;
+                    sliderRect.x += KEY_HORIZONTAL_MARGIN;
+                    sliderRect.width -= (2 * KEY_HORIZONTAL_MARGIN);
+                    // TODO: this seems a dumb way to interact with their API
+                    float min = _allRanges[i].min;
+                    float max = _allRanges[i].max;
+                    EditorGUI.MinMaxSlider(sliderRect, ref min, ref max, 0f, 1f);
+                    _allRanges[i] = new SampleRange(min, max);
                     
+                    // Iteration bounds checks
                     i++;
                     entryRect.x += KEY_ENTRY_WIDTH + KEY_HORIZONTAL_MARGIN;
 
@@ -243,7 +277,9 @@ namespace SimpleSample.Editor
                     if (!_showSample[i]) continue;
 
                     int numPoints = _allStreams[i].Length;
-                    for (int j = 0; j < numPoints; j++)
+                    int min = Mathf.RoundToInt(_allRanges[i].min * numPoints);
+                    int max = Mathf.RoundToInt(_allRanges[i].max * numPoints);
+                    for (int j = min; j < max; j++)
                     {
                         if (_allStreams[i][j].x < dataMin.x) dataMin.x = _allStreams[i][j].x;
                         if (_allStreams[i][j].y < dataMin.y) dataMin.y = _allStreams[i][j].y;
@@ -357,7 +393,11 @@ namespace SimpleSample.Editor
                         GL.Begin(GL.LINE_STRIP);
                         GL.Color(lineColor);
 
-                        for (int j = 0; j < stream.Length; j++)
+                        int numPoints = stream.Length;
+                        int min = Mathf.RoundToInt(_allRanges[i].min * numPoints);
+                        int max = Mathf.RoundToInt(_allRanges[i].max * numPoints);
+
+                        for (int j = min; j < max; j++)
                         {
                             Vector2 point = new Vector2(
                             graphRect.x + GRAPH_INNER_MARGIN + (Mathf.InverseLerp(dataMin.x, dataMax.x, stream[j].x) * (graphRect.width - (2 * GRAPH_INNER_MARGIN))),
@@ -377,11 +417,16 @@ namespace SimpleSample.Editor
                         }
                         GL.End();
 #else
+                        
+                        int numPoints = stream.Length;
+                        int min = Mathf.RoundToInt(_allRanges[i].min * numPoints);
+                        int max = Mathf.RoundToInt(_allRanges[i].max * numPoints);
 
                         Vector2 startPoint = new Vector2(
-                            graphRect.x + GRAPH_INNER_MARGIN + (Mathf.InverseLerp(dataMin.x, dataMax.x, stream[0].x) * (graphRect.width - (2 * GRAPH_INNER_MARGIN))),
-                            graphRect.y + GRAPH_INNER_MARGIN + (Mathf.InverseLerp(dataMax.y, dataMin.y, stream[0].y) * (graphRect.height - (2 * GRAPH_INNER_MARGIN))));
-                        for (int j = 1; j < stream.Length; j++)
+                            graphRect.x + GRAPH_INNER_MARGIN + (Mathf.InverseLerp(dataMin.x, dataMax.x, stream[min].x) * (graphRect.width - (2 * GRAPH_INNER_MARGIN))),
+                            graphRect.y + GRAPH_INNER_MARGIN + (Mathf.InverseLerp(dataMax.y, dataMin.y, stream[min].y) * (graphRect.height - (2 * GRAPH_INNER_MARGIN))));
+
+                        for (int j = min + 1; j < max; j++)
                         {
                             Vector2 point = new Vector2(
                             graphRect.x + GRAPH_INNER_MARGIN + (Mathf.InverseLerp(dataMin.x, dataMax.x, stream[j].x) * (graphRect.width - (2 * GRAPH_INNER_MARGIN))),
