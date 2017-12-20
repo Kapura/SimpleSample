@@ -30,21 +30,22 @@ namespace SimpleSample.Editor
         private static readonly Color GRAPH_LABEL_COLOR = new Color (0, 0, 0);
         private static readonly Color GRAPH_HELP_COLOR = new Color(1, 1, 1);
         
-        [SerializeField] [HideInInspector]
+        [SerializeField]
         private List<ISampleProvider> _sampleProviders = new List<ISampleProvider>();
 
         
         // These lists starting to get ridiculus.
         // TODO: make SampleInfo or w/e struct
-        [SerializeField] [HideInInspector]
+        [SerializeField]
         private int _totalSamples = 0;
-        [SerializeField] [HideInInspector]
+        [SerializeField]
         private List<Vector2[]> _allStreams = new List<Vector2[]>();
-        [SerializeField] [HideInInspector]
+        [SerializeField]
         private List<Color> _allColors = new List<Color>();
-        [SerializeField] [HideInInspector]
+        [SerializeField]
         private List<string> _allNames = new List<string>();
 
+        [Serializable]
         private struct SampleRange
         {
             public float min;
@@ -58,36 +59,20 @@ namespace SimpleSample.Editor
 
             public static SampleRange Range01 { get { return new SampleRange(0, 1); } }
         }
-        [SerializeField] [HideInInspector]
-        private Dictionary<int, SampleRange> _allRanges = new Dictionary<int, SampleRange>();
-        /*
-        [Serializable]
-        private struct SampleID : IEquatable<SampleID>
-        {
-            private ISampleProvider provider;
-            private int index;
 
-            public SampleID(ISampleProvider provider, int index)
-            {
-                this.provider = provider;
-                this.index = index;
-            }
+        [SerializeField]
+        private List<SampleRange> _allRanges = new List<SampleRange>();
+        
+        [SerializeField]
+        private List<bool> _showSample = new List<bool>();
 
-            public bool Equals(SampleID other)
-            {
-                return provider == other.provider && index == other.index;
-            }
-        }
-        */
-        [SerializeField] [HideInInspector]
-        private Dictionary<int, bool> _showSample = new Dictionary<int, bool>();
-
-        [SerializeField] [HideInInspector]
+        [SerializeField]
         private Dictionary<int, string> _cachedValueStrings = new Dictionary<int, string>();
 
         private Material lineMat = null;
 
-        private bool testbool;
+        [SerializeField]
+        private bool _lockSamples = false;
         
         [MenuItem("Window/Graph Window")]
         public static void ShowWindow()
@@ -96,7 +81,7 @@ namespace SimpleSample.Editor
             window.minSize = new Vector2(WINDOW_MIN_X, WINDOW_MIN_Y);
         }
 
-        [UnityEditor.Callbacks.OnOpenAsset(0)]
+        [UnityEditor.Callbacks.OnOpenAsset(0)]  // Double click on an ISampleProvider to open the graph window
         private static bool OnOpenAsset(int instanceID, int line)
         {
             if (EditorUtility.InstanceIDToObject(instanceID) as ISampleProvider != null)
@@ -131,8 +116,7 @@ namespace SimpleSample.Editor
         {
             Profiler.BeginSample("GraphWindow");
             bool selectionHasSamples = false;  // We won't clear the list until we find at least one sample provider in the new selection
-
-
+            
             Profiler.BeginSample("UpdateSampleProviders");
             int[] ids = Selection.instanceIDs;
             int numIds = ids.Length;
@@ -140,7 +124,6 @@ namespace SimpleSample.Editor
             {
                 Object obj = EditorUtility.InstanceIDToObject(ids[i]);
                 ISampleProvider provider = obj as ISampleProvider;
-                GameObject go = obj as GameObject;
                 if (provider != null && provider.NumSampleStreams > 0)
                 {
                     if (!selectionHasSamples)
@@ -149,6 +132,8 @@ namespace SimpleSample.Editor
                     selectionHasSamples = true;
                     _sampleProviders.Add(provider);
                 }
+
+                GameObject go = obj as GameObject;
                 if (go != null)
                 {
                     MonoBehaviour[] behaviours = go.GetComponents<MonoBehaviour>();
@@ -169,7 +154,7 @@ namespace SimpleSample.Editor
             }
 
             // Update the aggregate listings
-            if (selectionHasSamples || _totalSamples > 0)
+            if (!_lockSamples && (selectionHasSamples || _totalSamples > 0))
             {
                 // All old state is assumed to be stale...
                 _totalSamples = 0;
@@ -187,19 +172,23 @@ namespace SimpleSample.Editor
                         _allStreams.Add(sampleStream);
                         _allColors.Add(enumerator.Current.GetSampleColor(i));
                         _allNames.Add(enumerator.Current.GetSampleName(i));
-                        
+
                         // _totalSamples is the index of the most recent stream; == _allStreams.Count - 1
-                        if (!_showSample.ContainsKey(_totalSamples))
-                        {
-                            _showSample[_totalSamples] = true;
-                            _allRanges[_totalSamples] = SampleRange.Range01;
-                        }
+                        if (_showSample.Count <= _totalSamples)
+                            _showSample.Add(true);
+
+                        if (_allRanges.Count <= _totalSamples)
+                            _allRanges.Add(SampleRange.Range01);
                         
                         _totalSamples++;
                     }
                 }
             }
             Profiler.EndSample();
+
+            // Draw the lock checkbox
+            Rect lockRect = new Rect(0, 0, position.width, GRAPH_MARGIN_TOP);
+            _lockSamples = EditorGUI.ToggleLeft(lockRect, "Lock samples", _lockSamples);
 
             Profiler.BeginSample("Key");
             // Draw key
